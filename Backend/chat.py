@@ -3,6 +3,9 @@ from flask_cors import CORS
 from flask_socketio import SocketIO, emit, join_room
 import mysql.connector
 from datetime import datetime
+import os
+
+load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
@@ -10,10 +13,10 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
 
 # MySQL
 db = mysql.connector.connect(
-    host="localhost",
-    user="root",
-    password="Mdsaad@3704",
-    database="UniCollab"
+    host=os.getenv("DB_HOST"),
+    user=os.getenv("DB_USER"),
+    password=os.getenv("DB_PASSWORD"),
+    database=os.getenv("DB_NAME")
 )
 cursor = db.cursor(dictionary=True)
 
