@@ -1,6 +1,6 @@
-from flask import Flask
+from flask import Flask, request, jsonify
 from flask_cors import CORS
-from flask_socketio import SocketIO
+from flask_socketio import SocketIO, emit, join_room
 import mysql.connector
 from datetime import datetime
 
@@ -42,10 +42,6 @@ def get_projects():
 # Socket.IO Events
 # -----------------------
 
-# Example event
-@socketio.on("connect")
-def handle_connect():
-    print("Client connected")
 
 
 @socketio.on("join_room")
