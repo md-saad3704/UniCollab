@@ -18,39 +18,55 @@ const MainHome = () => {
   const [activeTag, setActiveTag] = useState("");
   const [feed, setFeed] = useState([]);
   const [error, setError] = useState("");
+  const [students, setStudents] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
+
   const navigate = useNavigate();
 
+  // Load current user from localStorage
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem("user"));
+    if (!user) {
+      navigate("/login");
+    } else {
+      setCurrentUser(user);
+    }
+  }, [navigate]);
+
+  // Fetch students from backend
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    axios
+      .get("http://localhost:5000/api/students", {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .then((res) => setStudents(res.data))
+      .catch((err) => console.error("Failed to fetch students:", err));
+  }, []);
+
+  // Fetch project feed
   useEffect(() => {
     const fetchProjects = async () => {
       try {
         const token = localStorage.getItem("token");
-        if (!token) {
-          navigate("/login");
-          return;
-        }
+        if (!token) return navigate("/login");
 
         const res = await axios.get("http://localhost:5000/api/projects", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         });
-
         setFeed(res.data.projects || []);
-      } catch (error) {
-        console.error(
-          "Failed to load projects:",
-          error.message || error.response?.data?.error
-        );
+      } catch (err) {
+        console.error(err);
         setError(
-          error.response?.data?.error ||
-            "Unable to load projects. Please try again later."
+          err.response?.data?.error || "Unable to load projects. Try again."
         );
-        if (error.response?.status === 401 || error.response?.status === 403) {
+        if (err.response?.status === 401 || err.response?.status === 403) {
           navigate("/login");
         }
       }
     };
-
     fetchProjects();
   }, [navigate]);
 
@@ -65,50 +81,33 @@ const MainHome = () => {
 
   const allTags = [...new Set(feed.flatMap((item) => item.tags))];
 
-  const truncateText = (text, maxLength) => {
-    if (text.length <= maxLength) {
-      return text;
-    }
-    return text.substring(0, maxLength);
-  };
+  const truncateText = (text, maxLength) =>
+    text.length <= maxLength ? text : text.substring(0, maxLength);
 
-  const DESCRIPTION_MAX_LENGTH = 150; // You can adjust this value
+  const DESCRIPTION_MAX_LENGTH = 150;
+
+  // Don't render until currentUser is loaded
+  if (!currentUser) return <div>Loading...</div>;
 
   return (
     <>
-      {/* Define the custom keyframes and animation directly within a style tag */}
-      <style>
-        {`
-        @keyframes gradient-shift {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
-        }
+      <Navbar currentUser={currentUser} students={students} />
 
-        .animated-gradient-heading {
-          background-size: 200% auto; /* Make the gradient larger than the text */
-          animation: gradient-shift 4s ease infinite; /* Apply the animation */
-        }
-        `}
-      </style>
-
-      <Navbar />
       <div
         className="min-h-screen text-white pt-24 pb-8 px-4 sm:px-6 lg:px-8"
         style={{ background: "linear-gradient(145deg, #0f172a, #1e293b)" }}
       >
         <div className="max-w-7xl mx-auto">
+          {/* Header */}
           <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
             <motion.h2
-              // Applied the custom class 'animated-gradient-heading'
-              // The gradient colors and text clipping are still Tailwind classes
               className="text-3xl font-extrabold bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-400 text-transparent bg-clip-text text-center sm:text-left animated-gradient-heading"
               variants={fadeUp}
               initial="hidden"
               whileInView="visible"
               viewport={{ once: true }}
             >
-              🚀Student Project Feed
+              🚀 Student Project Feed
             </motion.h2>
             <Link
               to="/post"
@@ -118,6 +117,7 @@ const MainHome = () => {
             </Link>
           </div>
 
+          {/* Search */}
           <input
             type="text"
             className="block w-full px-4 py-2 rounded-md bg-slate-800 border border-slate-700 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-300 ease-in-out mb-6"
@@ -126,15 +126,16 @@ const MainHome = () => {
             onChange={(e) => setSearch(e.target.value)}
           />
 
+          {/* Tags */}
           <div className="mb-6 flex flex-wrap gap-2">
-            {allTags.map((tag, index) => (
+            {allTags.map((tag, idx) => (
               <span
-                key={index}
-                className={`px-3 py-1 rounded-full text-xs font-medium cursor-pointer transition-colors duration-200
-                  ${activeTag === tag
+                key={idx}
+                className={`px-3 py-1 rounded-full text-xs font-medium cursor-pointer transition-colors duration-200 ${
+                  activeTag === tag
                     ? "bg-indigo-600 text-white shadow-md"
                     : "bg-slate-700 text-cyan-200 hover:bg-slate-600"
-                  }`}
+                }`}
                 onClick={() => setActiveTag(activeTag === tag ? "" : tag)}
               >
                 {tag}
@@ -142,27 +143,23 @@ const MainHome = () => {
             ))}
           </div>
 
+          {/* Error */}
           {error && (
             <div className="bg-red-500/20 border border-red-400 text-red-300 px-4 py-2 rounded-md mb-4 text-sm">
               {error}
             </div>
           )}
 
+          {/* Feed */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredFeed.map((idea) => (
               <div key={idea.id}>
                 <div className="bg-white/5 border border-white/15 rounded-xl p-6 backdrop-blur-md flex flex-col justify-between h-full transition-transform duration-300 ease-in-out hover:-translate-y-1 hover:shadow-lg hover:shadow-black/30">
                   <div>
-                    <div className="flex items-center mb-3">
-                      <div>
-                        <h6 className="text-white text-base font-semibold">
-                          {idea.author}
-                        </h6>
-                        <small className="text-gray-400 text-xs">
-                          Project Owner
-                        </small>
-                      </div>
-                    </div>
+                    <h6 className="text-white text-base font-semibold">
+                      {idea.author}
+                    </h6>
+                    <small className="text-gray-400 text-xs">Project Owner</small>
 
                     <h5 className="font-bold text-lg sm:text-xl mb-2 text-white">
                       {idea.title}
@@ -180,9 +177,9 @@ const MainHome = () => {
                     </p>
 
                     <div className="flex flex-wrap gap-2">
-                      {idea.tags.map((tag, index) => (
+                      {idea.tags.map((tag, idx) => (
                         <span
-                          key={index}
+                          key={idx}
                           className="px-3 py-1 rounded-full bg-slate-700 text-cyan-200 text-xs font-medium"
                         >
                           {tag}
@@ -197,9 +194,7 @@ const MainHome = () => {
 
           {filteredFeed.length === 0 && !error && (
             <div className="text-center mt-10 text-gray-300">
-              <h5 className="text-lg font-medium">
-                No matching projects found.
-              </h5>
+              <h5 className="text-lg font-medium">No matching projects found.</h5>
             </div>
           )}
         </div>

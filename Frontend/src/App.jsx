@@ -6,6 +6,7 @@ import MainHome from "./pages/MainHome";
 import PostIdea from "./pages/PostIdea";
 import Profile from "./pages/Profile";
 import ProjectDetails from "./pages/ProjectDetails";
+import Chat from "./components/Chat/Chat";
 
 export default function App() {
   return (
@@ -16,7 +17,11 @@ export default function App() {
       <Route path="/home" element={<MainHome />} />
       <Route path="/post" element={<PostIdea />} />
       <Route path="/profile" element={<Profile />} />
-      <Route path="/projectideas/:id" element={<ProjectDetails />} />
+      <Route path="/ProjectDetails/:id" element={<ProjectDetails />} />
+        {/* fallback 404 */}
+        <Route path="*" element={<div>Page not found</div>} />
+      <Route path="/messages" element={<Chat />} />
+
     </Routes>
 
 
